@@ -1,0 +1,6 @@
+/clear_Students
+/clear_attendance
+dataset/*jpg
+*.db
+*.sqlite
+*.sqlite3

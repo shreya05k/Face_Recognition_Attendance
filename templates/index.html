@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Face Attendance System</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h1>Face Recognition Attendance System</h1>
+
+        <p>
+            Welcome to the Smart Attendance System
+        </p>
+
+        <div class="buttons">
+            <a href="/register">
+                <button>Register Student</button>
+            </a>
+
+            <a href="/train">
+                <button id="trainBtn">Train Model</button>
+            </a>
+            <a href="/recognize">
+                <button>Start Recognition</button>
+            </a>
+
+            <a href="/attendance">
+                <button>View Attendance</button>
+            </a>
+        </div>
+
+    </div>
+
+    <script>
+        const trainBtn = document.getElementById("trainBtn");
+
+        trainBtn.addEventListener("click", function () {
+
+            alert("Training started...");
+
+            window.location.href = "/train";
+
+        });
+    </script>
+</body>
+
+</html>
