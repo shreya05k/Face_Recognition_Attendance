@@ -1,6 +1,11 @@
 import sqlite3
+import os
 
-connection = sqlite3.connect("attendance.db")
+# ---------- Database Path ----------
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(BASE_DIR, "attendance.db")
+
+connection = sqlite3.connect(DB_PATH)
 cursor = connection.cursor()
 
 # Students table
