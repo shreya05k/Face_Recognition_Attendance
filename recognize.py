@@ -4,13 +4,13 @@ import sqlite3
 from datetime import datetime
 
 
-# ---------- Database function ----------
+# ---------- Database Path ----------
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(BASE_DIR, "attendance.db")
+
+
+# ---------- Mark Present ----------
 def mark_attendance(student_id):
-
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    DB_PATH = os.path.join(BASE_DIR, "attendance.db")
-
-    print("RECOGNIZE DATABASE:", DB_PATH)
 
     connection = sqlite3.connect(DB_PATH)
     cursor = connection.cursor()
@@ -43,14 +43,63 @@ def mark_attendance(student_id):
 
         connection.commit()
 
-        print("Attendance marked successfully!")
+        print("Present:", student_id)
 
     connection.close()
 
 
-# ---------- Load trained model ----------
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# ---------- Mark Absent ----------
+def mark_absent_students(recognized_students):
 
+    connection = sqlite3.connect(DB_PATH)
+    cursor = connection.cursor()
+
+    now = datetime.now()
+    date = now.strftime("%Y-%m-%d")
+
+    # Get all registered students
+    cursor.execute("""
+        SELECT student_id
+        FROM students
+    """)
+
+    all_students = cursor.fetchall()
+
+    for student in all_students:
+
+        student_id = student[0]
+
+        # If student was NOT recognized
+        if student_id not in recognized_students:
+
+            # Check if attendance already exists
+            cursor.execute("""
+                SELECT * FROM attendance
+                WHERE student_id = ? AND date = ?
+            """, (student_id, date))
+
+            record = cursor.fetchone()
+
+            if not record:
+
+                cursor.execute("""
+                    INSERT INTO attendance
+                    (student_id, date, time, status)
+                    VALUES (?, ?, ?, ?)
+                """, (
+                    student_id,
+                    date,
+                    "--",
+                    "Absent"
+                ))
+
+                print("Absent:", student_id)
+
+    connection.commit()
+    connection.close()
+
+
+# ---------- Load trained model ----------
 recognizer = cv2.face.LBPHFaceRecognizer_create()
 
 recognizer.read(
@@ -88,9 +137,11 @@ print("Students:", students)
 # ---------- Open camera ----------
 camera = cv2.VideoCapture(0)
 
-attendance_done = set()
+# Students recognized during this session
+recognized_students = set()
 
 
+# ---------- Recognition Loop ----------
 while True:
 
     success, frame = camera.read()
@@ -116,6 +167,7 @@ while True:
 
         student_id, confidence = recognizer.predict(face)
 
+
         # ---------- Recognized ----------
         if confidence < 70:
 
@@ -126,21 +178,20 @@ while True:
 
             text = name
 
-            # Mark attendance only once
-            if student_id not in attendance_done:
+            # Add student to recognized list
+            recognized_students.add(student_id)
 
-                mark_attendance(student_id)
+            # Mark Present
+            mark_attendance(student_id)
 
-                attendance_done.add(student_id)
 
         # ---------- Unknown ----------
         else:
 
-            name = "Unknown"
-            text = name
+            text = "Unknown"
 
 
-        # ---------- Face rectangle ----------
+        # ---------- Face Rectangle ----------
         cv2.rectangle(
             frame,
             (x, y),
@@ -150,7 +201,7 @@ while True:
         )
 
 
-        # ---------- Display name ----------
+        # ---------- Display Name ----------
         cv2.putText(
             frame,
             text,
@@ -162,7 +213,7 @@ while True:
         )
 
 
-    # ---------- Q instruction ----------
+    # ---------- Q Instruction ----------
     cv2.putText(
         frame,
         "Press Q to close",
@@ -185,5 +236,16 @@ while True:
         break
 
 
+# ---------- Close Camera ----------
 camera.release()
 cv2.destroyAllWindows()
+
+
+# ---------- Mark Absent ----------
+print("\nChecking absent students...")
+
+mark_absent_students(recognized_students)
+
+print("\nAttendance session completed!")
+
+print("Recognized students:", recognized_students)

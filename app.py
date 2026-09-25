@@ -82,8 +82,11 @@ def attendance():
         FROM attendance
         JOIN students
         ON attendance.student_id = students.student_id
-        ORDER BY attendance.date DESC,
-                 attendance.time DESC
+        WHERE attendance.date = (
+            SELECT MAX(date)
+            FROM attendance
+        )
+        ORDER BY attendance.time DESC
     """)
 
     records = cursor.fetchall()
